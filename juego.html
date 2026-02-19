@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Juego Ngigua</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+
+    body {
+      margin: 0;
+      font-family: Poppins, sans-serif;
+      background: linear-gradient(180deg, #eaf6ff, #d7eefc);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #fondoCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 0;
+    }
+
+    .game-container {
+      width: 400px;
+      background: white;
+      border-radius: 18px;
+      padding: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.15);
+      text-align: center;
+      position: relative;
+      z-index: 2;
+    }
+
+    h2 { color: #1976d2; margin-bottom: 10px; }
+
+    .hud {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 15px;
+    }
+
+    .chip {
+      background: #e3f2fd;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+
+    #palabraJuego {
+      font-weight: 700;
+      margin: 15px 0;
+      font-size: 18px;
+    }
+
+    button {
+      padding: 8px 12px;
+      border: none;
+      border-radius: 10px;
+      background: #1976d2;
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      margin: 4px;
+      transition: 0.3s;
+    }
+
+    button:hover   { background: #0d47a1; }
+    button:disabled { opacity: 0.5; cursor: default; }
+
+    #feedback {
+      margin-top: 10px;
+      font-weight: 600;
+      min-height: 40px;
+    }
+
+    #inputContainer {
+      margin-top: 10px;
+      display: none;
+    }
+
+    input {
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      width: 65%;
+    }
+
+    /* Mensaje de fin de juego más visual */
+    .game-over {
+      color: #e53935;
+    }
+
+    .winner {
+      color: #43a047;
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="fondoCanvas"></canvas>
+
+<div class="game-container">
+  <h2>🎮 Juego Ngigua</h2>
+
+  <div class="hud">
+    <div class="chip">❤ <span id="vidas">3</span></div>
+    <div class="chip">⭐ <span id="puntos">0</span></div>
+  </div>
+
+  <div id="palabraJuego">Pulsa Comenzar</div>
+
+  <div>
+    <button id="btnComenzar">▶ Comenzar</button>
+    <button id="btnEscribir"   disabled>✎ Escribir</button>
+    <button id="btnPronunciar" disabled>🔊 Escuchar</button>
+    <button id="btnHablar"     disabled>🎤 Pronunciar</button>
+  </div>
+
+  <div id="inputContainer">
+    <input type="text" id="textoInput" placeholder="Escribe en Ngigua">
+    <button id="btnEnviar">✔</button>
+  </div>
+
+  <div id="feedback"></div>
+</div>
+
+<!-- ✅ CORREGIDO: diccionario compartido en un solo archivo -->
+<script src="diccionario.js"></script>
+
+<script>
+  /* ===== CANVAS — ✅ CORREGIDO: requestAnimationFrame en lugar de setInterval ===== */
+  const canvas = document.getElementById('fondoCanvas');
+  const ctx    = canvas.getContext('2d');
+
+  function resize() {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  resize();
+  // ✅ CORREGIDO: resize reactivo (faltaba en el original)
+  window.addEventListener('resize', resize);
+
+  const bubbles = Array.from({ length: 40 }, () => ({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
+    r: Math.random() * 6 + 2,
+    d: Math.random() * 1 + 0.5
+  }));
+
+  function animarFondo() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = 'rgba(25,118,210,0.2)';
+    bubbles.forEach(b => {
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+      ctx.fill();
+      b.y -= b.d;
+      if (b.y < 0) { b.y = canvas.height; b.x = Math.random() * canvas.width; }
+    });
+    requestAnimationFrame(animarFondo);
+  }
+  animarFondo();
+
+  /* ===== ESTADO ===== */
+  let vidas        = 3;
+  let puntos       = 0;
+  let palabraActual = '';
+
+  /* ✅ CORREGIDO: bandera global para speech, evita estado inconsistente al reiniciar */
+  const haySpeech = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+
+  /* ===== REFERENCIAS DOM ===== */
+  const vidasNode      = document.getElementById('vidas');
+  const puntosNode     = document.getElementById('puntos');
+  const palabraNode    = document.getElementById('palabraJuego');
+  const feedback       = document.getElementById('feedback');
+  const btnComenzar    = document.getElementById('btnComenzar');
+  const btnEscribir    = document.getElementById('btnEscribir');
+  const btnPronunciar  = document.getElementById('btnPronunciar');
+  const btnHablar      = document.getElementById('btnHablar');
+  const inputContainer = document.getElementById('inputContainer');
+  const textoInput     = document.getElementById('textoInput');
+  const btnEnviar      = document.getElementById('btnEnviar');
+
+  /* ✅ MEJORADO: una sola instancia de Audio reutilizable */
+  const audioPlayer = new Audio();
+
+  function reproducirAudio(ruta) {
+    audioPlayer.src = ruta;
+    audioPlayer.play();
+  }
+
+  /* ===== FUNCIONES ===== */
+  function actualizarHUD() {
+    vidasNode.textContent  = vidas;
+    puntosNode.textContent = puntos;
+  }
+
+  function nuevaRonda() {
+    const palabras = Object.keys(diccionario);
+    palabraActual  = palabras[Math.floor(Math.random() * palabras.length)];
+    palabraNode.textContent      = `Palabra: ${palabraActual}`;
+    palabraNode.className        = '';
+    feedback.textContent         = '';
+    inputContainer.style.display = 'none';
+    textoInput.value             = '';
+  }
+
+  function finJuego() {
+    feedback.textContent    = '💀 Juego terminado — ¡inténtalo de nuevo!';
+    palabraNode.textContent = 'Fin del juego';
+    palabraNode.className   = 'game-over';
+    btnEscribir.disabled    = true;
+    btnPronunciar.disabled  = true;
+    btnHablar.disabled      = true;
+    inputContainer.style.display = 'none';
+  }
+
+  function evaluar(texto) {
+    const esperado = diccionario[palabraActual].ngigua.toLowerCase();
+
+    if (texto.toLowerCase() === esperado) {
+      puntos += 10;
+      feedback.textContent = '✅ ¡Correcto! +10 puntos';
+      setTimeout(nuevaRonda, 1000);
+    } else {
+      vidas--;
+      feedback.textContent = `❌ Incorrecto — la respuesta era: ${diccionario[palabraActual].ngigua}`;
+      if (vidas <= 0) {
+        finJuego();
+      } else {
+        setTimeout(nuevaRonda, 1500);
+      }
+    }
+    actualizarHUD();
+  }
+
+  /* ===== RECONOCIMIENTO DE VOZ ===== */
+  if (haySpeech) {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'es-ES';
+
+    btnHablar.addEventListener('click', () => {
+      recognition.start();
+      feedback.textContent = '🎤 Escuchando...';
+    });
+
+    recognition.onresult = (event) => {
+      const texto = event.results[0][0].transcript;
+      feedback.textContent = 'Escuchado: ' + texto;
+      evaluar(texto);
+    };
+
+    recognition.onerror = () => {
+      feedback.textContent = '⚠️ Error al usar el micrófono';
+    };
+  } else {
+    btnHablar.disabled = true;
+  }
+
+  /* ===== EVENTOS ===== */
+  btnComenzar.addEventListener('click', () => {
+    vidas  = 3;
+    puntos = 0;
+    actualizarHUD();
+    btnEscribir.disabled   = false;
+    btnPronunciar.disabled = false;
+    // ✅ CORREGIDO: usa la bandera global, no asume que siempre hay speech
+    btnHablar.disabled     = !haySpeech;
+    nuevaRonda();
+  });
+
+  btnEscribir.addEventListener('click', () => {
+    inputContainer.style.display = 'block';
+    textoInput.focus();
+  });
+
+  btnEnviar.addEventListener('click', () => {
+    const texto = textoInput.value.trim();
+    if (!texto) return;
+    evaluar(texto);
+    textoInput.value = '';
+  });
+
+  textoInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') btnEnviar.click();
+  });
+
+  btnPronunciar.addEventListener('click', () => {
+    reproducirAudio(diccionario[palabraActual].audio);
+  });
+</script>
+</body>
+</html>

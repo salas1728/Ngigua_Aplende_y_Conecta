@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IniWua — Traductor Ngigua</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+
+    :root {
+      --azul:        #1976d2;
+      --azul-oscuro: #0d47a1;
+      --azul-claro:  #e3f2fd;
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: Poppins, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      background: linear-gradient(135deg, var(--azul), var(--azul-oscuro));
+      height: 100vh;
+      display: flex;
+    }
+
+    .app {
+      margin: auto;
+      width: 100%;
+      max-width: 1200px;
+      height: 90vh;
+      background: white;
+      border-radius: 18px;
+      display: flex;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0,0,0,.25);
+    }
+
+    /* MENÚ */
+    .menu {
+      width: 300px;
+      background: var(--azul-claro);
+      padding: 15px;
+      overflow-y: auto;
+    }
+
+    .menu h3 {
+      text-align: center;
+      color: var(--azul-oscuro);
+    }
+
+    .search {
+      width: 100%;
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid #bbb;
+      margin-bottom: 12px;
+    }
+
+    .word {
+      background: white;
+      border-radius: 12px;
+      padding: 10px;
+      margin-bottom: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,.1);
+    }
+
+    .audio-btn {
+      margin-top: 6px;
+      padding: 6px 10px;
+      background: var(--azul);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    /* CHAT */
+    .chat {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: #f7fbff;
+    }
+
+    .header {
+      background: var(--azul);
+      color: white;
+      padding: 15px;
+      text-align: center;
+    }
+
+    .messages {
+      flex: 1;
+      padding: 15px;
+      overflow-y: auto;
+    }
+
+    .msg {
+      max-width: 70%;
+      padding: 12px;
+      border-radius: 14px;
+      margin-bottom: 10px;
+    }
+
+    .user { background: var(--azul); color: white; margin-left: auto; }
+    .bot  { background: #e1f0ff; }
+
+    .input-area {
+      display: flex;
+      padding: 10px;
+      background: white;
+    }
+
+    /* ✅ CORREGIDO: input con id explícito referenciado por getElementById */
+    #inputChat {
+      flex: 1;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      margin-left: 6px;
+      padding: 12px 14px;
+      border: none;
+      border-radius: 12px;
+      background: var(--azul);
+      color: white;
+      cursor: pointer;
+    }
+
+    .back { background: #455a64; }
+
+    @media (max-width: 768px) {
+      .menu { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- MENÚ LATERAL -->
+  <div class="menu">
+    <h3>📘 Diccionario</h3>
+    <input class="search" placeholder="Buscar..." oninput="buscar(this.value)">
+    <div id="lista"></div>
+  </div>
+
+  <!-- CHAT -->
+  <div class="chat">
+    <div class="header">💬 Traductor Ngigua</div>
+    <div class="messages" id="chat"></div>
+
+    <div class="input-area">
+      <!-- ✅ CORREGIDO: id claro para referenciar con getElementById -->
+      <input id="inputChat" placeholder="Escribe una palabra en español...">
+      <button onclick="traducir()">Enviar</button>
+      <button class="back" onclick="location.href='index.html'">↩</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ✅ CORREGIDO: diccionario compartido en un solo archivo -->
+<script src="diccionario.js"></script>
+
+<script>
+  const chat       = document.getElementById('chat');
+  const lista      = document.getElementById('lista');
+  // ✅ CORREGIDO: referencia explícita con getElementById
+  const inputChat  = document.getElementById('inputChat');
+
+  /* ✅ MEJORADO: una sola instancia de Audio reutilizable */
+  const audioPlayer = new Audio();
+
+  function reproducir(ruta) {
+    audioPlayer.src = ruta;
+    audioPlayer.play();
+  }
+
+  /* ✅ MEJORADO: usa DocumentFragment en lugar de innerHTML += en loop */
+  function cargarMenu(filtro = '') {
+    const frag = document.createDocumentFragment();
+
+    for (const palabra in diccionario) {
+      const ngigua = diccionario[palabra].ngigua;
+      if (
+        palabra.toLowerCase().includes(filtro) ||
+        ngigua.toLowerCase().includes(filtro)
+      ) {
+        const div = document.createElement('div');
+        div.className = 'word';
+
+        const nombre = document.createElement('strong');
+        nombre.textContent = palabra;
+
+        const traduccion = document.createTextNode(` → ${ngigua}`);
+
+        const btn = document.createElement('button');
+        btn.className   = 'audio-btn';
+        btn.textContent = '🔊 Escuchar';
+        btn.onclick     = () => reproducir(diccionario[palabra].audio);
+
+        div.appendChild(nombre);
+        div.appendChild(traduccion);
+        div.appendChild(document.createElement('br'));
+        div.appendChild(btn);
+        frag.appendChild(div);
+      }
+    }
+
+    lista.innerHTML = '';
+    lista.appendChild(frag);
+  }
+
+  cargarMenu();
+
+  function buscar(valor) {
+    cargarMenu(valor.toLowerCase());
+  }
+
+  /* CHAT */
+  function agregarMensaje(texto, clase, audio = null) {
+    const d = document.createElement('div');
+    d.className   = 'msg ' + clase;
+    d.textContent = texto;
+
+    if (audio) {
+      const btn = document.createElement('button');
+      btn.className   = 'audio-btn';
+      btn.textContent = '🔊 Escuchar';
+      btn.onclick     = () => reproducir(audio);
+      d.appendChild(document.createElement('br'));
+      d.appendChild(btn);
+    }
+
+    chat.appendChild(d);
+    chat.scrollTop = chat.scrollHeight;
+  }
+
+  function traducir() {
+    // ✅ CORREGIDO: usa la referencia explícita inputChat
+    const t = inputChat.value.toLowerCase().trim();
+    if (!t) return;
+
+    agregarMensaje(t, 'user');
+
+    if (diccionario[t]) {
+      agregarMensaje(diccionario[t].ngigua, 'bot', diccionario[t].audio);
+    } else {
+      agregarMensaje('Palabra no encontrada — próximamente se añadirá más vocabulario.', 'bot');
+    }
+
+    inputChat.value = '';
+    inputChat.focus();
+  }
+
+  /* Enviar con Enter */
+  inputChat.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') traducir();
+  });
+</script>
+</body>
+</html>

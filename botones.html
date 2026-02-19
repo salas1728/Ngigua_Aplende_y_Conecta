@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ngigua — Aprende Jugando</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+
+    :root {
+      --azul-1: #eaf6fd;
+      --azul-2: #bfe7fb;
+      --azul-3: #5aa9e6;
+      --azul-4: #1d3c6a;
+      --blanco: #fff;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: var(--azul-1);
+      color: #052c3b;
+    }
+
+    h2, h3 {
+      text-align: center;
+      color: var(--azul-4);
+    }
+
+    canvas {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+    }
+
+    /* PANEL IMAGEN */
+    #image-panel {
+      max-width: 900px;
+      height: 380px;
+      margin: 20px auto;
+      background: linear-gradient(135deg, var(--azul-2), #ffffff);
+      border-radius: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,.15);
+      transition: 0.3s;
+    }
+
+    #image-panel img {
+      max-width: 90%;
+      max-height: 80%;
+      border-radius: 12px;
+    }
+
+    #image-panel .nombre-imagen {
+      margin-top: 10px;
+      font-weight: 600;
+      color: var(--azul-4);
+      font-size: 1.1rem;
+    }
+
+    /* GRIDS */
+    .grid {
+      max-width: 800px;
+      margin: 10px auto 30px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+      gap: 12px;
+    }
+
+    .grid button {
+      background: var(--azul-4);
+      color: white;
+      border: none;
+      padding: 14px;
+      border-radius: 14px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: .3s;
+    }
+
+    .grid button:hover {
+      background: var(--azul-3);
+      transform: translateY(-3px);
+    }
+
+    /* MEMORAMA */
+    #memory {
+      max-width: 800px;
+      margin: 40px auto;
+    }
+
+    .memory-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+      gap: 12px;
+    }
+
+    .card {
+      aspect-ratio: 1 / 1;
+      perspective: 800px;
+    }
+
+    .card-inner {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: .5s;
+      cursor: pointer;
+    }
+
+    .card.flipped .card-inner  { transform: rotateY(180deg); }
+    .card.matched .card-inner  { transform: rotateY(180deg); outline: 3px solid #43a047; border-radius: 12px; }
+
+    .face {
+      position: absolute;
+      inset: 0;
+      backface-visibility: hidden;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .front {
+      background: linear-gradient(135deg, var(--azul-3), var(--azul-4));
+      color: white;
+      font-weight: 600;
+      font-size: 0.85rem;
+      text-align: center;
+      padding: 4px;
+    }
+
+    .back {
+      background: white;
+      transform: rotateY(180deg);
+    }
+
+    .back img {
+      max-width: 90%;
+      max-height: 90%;
+    }
+
+    /* Modal victoria */
+    #modal-victoria {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 10;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #modal-victoria.visible {
+      display: flex;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+
+    .modal-content h2 {
+      font-size: 2rem;
+      color: #43a047;
+      margin-bottom: 10px;
+    }
+
+    .modal-content p {
+      color: #555;
+      margin-bottom: 20px;
+    }
+
+    .modal-content button {
+      background: var(--azul-4);
+      color: white;
+      border: none;
+      padding: 12px 28px;
+      border-radius: 12px;
+      font-size: 1rem;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .modal-content button:hover {
+      background: var(--azul-3);
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="bg"></canvas>
+
+<h2>🌿 Aprende con imágenes — Ngigua</h2>
+
+<div id="image-panel">
+  <strong>Selecciona una palabra</strong>
+</div>
+
+<h3>🔧 Herramientas</h3>
+<div class="grid" id="grid-nature"></div>
+
+<h3>👥 Personas</h3>
+<div class="grid" id="grid-person"></div>
+
+<h3>🐾 Animales</h3>
+<div class="grid" id="grid-animals"></div>
+
+<h3>🌤 Cielo</h3>
+<div class="grid" id="grid-weather"></div>
+
+<h2>🧠 Memorama Ngigua</h2>
+<div id="memory">
+  <div class="memory-grid" id="memory-grid"></div>
+</div>
+
+<!-- ✅ NUEVO: Modal de victoria -->
+<div id="modal-victoria">
+  <div class="modal-content">
+    <h2>🎉 ¡Ganaste!</h2>
+    <p>Encontraste todos los pares. ¡Excelente memoria!</p>
+    <button onclick="reiniciarMemorама()">Jugar de nuevo</button>
+  </div>
+</div>
+
+<script>
+  /* ===== DATOS =====
+     ✅ CORREGIDO: nombres de imagen sin espacios (renombra tus archivos igual)
+     Si quieres mantener los nombres originales temporalmente, cambia img: a los nombres actuales.
+  */
+  const themes = {
+    nature: [
+      { name: 'Machete', img: 'herramienta-machete.png' },
+      { name: 'Martillo', img: 'herramienta-martillo.png' },
+      { name: 'Pala',    img: 'herramienta-pala.png' },
+      { name: 'Hacha',   img: 'herramienta-hacha.png' }
+    ],
+    person: [
+      { name: 'Niño',    img: 'persona-nino.png' },
+      { name: 'Mujer',   img: 'persona-mujer.png' },
+      { name: 'Hombre',  img: 'persona-hombre.png' },
+      { name: 'Anciano', img: 'persona-anciano.png' }
+    ],
+    animals: [
+      { name: 'Perro',   img: 'animal-perro.png' },
+      { name: 'Gato',    img: 'animal-gato.png' },
+      { name: 'Gallina', img: 'animal-gallina.png' },
+      { name: 'Gallo',   img: 'animal-gallo.png' }
+    ],
+    weather: [
+      { name: 'Sol',      img: 'cielo-sol.png' },
+      { name: 'Luna',     img: 'cielo-luna.png' },
+      { name: 'Estrellas',img: 'cielo-estrellas.png' },
+      { name: 'Nube',     img: 'cielo-nube.png' }
+    ]
+  };
+
+  /* ===== PANEL DE IMAGEN ===== */
+  const panel = document.getElementById('image-panel');
+
+  function buildGrid(id, items) {
+    const g = document.getElementById(id);
+    items.forEach(item => {
+      const b = document.createElement('button');
+      b.textContent = item.name;
+      b.onclick = () => {
+        panel.innerHTML = `
+          <img src="${item.img}" alt="${item.name}">
+          <div class="nombre-imagen">${item.name}</div>
+        `;
+      };
+      g.appendChild(b);
+    });
+  }
+
+  buildGrid('grid-nature',  themes.nature);
+  buildGrid('grid-person',  themes.person);
+  buildGrid('grid-animals', themes.animals);
+  buildGrid('grid-weather', themes.weather);
+
+  /* ===== MEMORAMA ===== */
+  const allImages = [
+    ...themes.nature,
+    ...themes.person,
+    ...themes.animals,
+    ...themes.weather
+  ].slice(0, 8);
+
+  let first = null;
+  let lock  = false;
+  // ✅ NUEVO: contador de pares para detectar victoria
+  let paresEncontrados = 0;
+  const totalPares     = allImages.length;
+
+  function crearMemorама() {
+    const gridEl = document.getElementById('memory-grid');
+    gridEl.innerHTML    = '';
+    paresEncontrados    = 0;
+    first               = null;
+    lock                = false;
+
+    const cartas = [...allImages, ...allImages].sort(() => Math.random() - 0.5);
+
+    cartas.forEach(c => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <div class="card-inner">
+          <div class="face front">Ngigua</div>
+          <div class="face back"><img src="${c.img}" alt="${c.name}"></div>
+        </div>`;
+
+      card.onclick = () => {
+        if (lock || card === first || card.classList.contains('matched')) return;
+        card.classList.add('flipped');
+
+        if (!first) { first = card; return; }
+
+        lock = true;
+        const img1 = first.querySelector('img').src;
+        const img2 = card.querySelector('img').src;
+
+        if (img1 === img2) {
+          first.classList.add('matched');
+          card.classList.add('matched');
+          paresEncontrados++;
+
+          // ✅ NUEVO: detectar victoria
+          if (paresEncontrados === totalPares) {
+            setTimeout(() => {
+              document.getElementById('modal-victoria').classList.add('visible');
+            }, 400);
+          }
+
+          resetPar();
+        } else {
+          setTimeout(() => {
+            first.classList.remove('flipped');
+            card.classList.remove('flipped');
+            resetPar();
+          }, 800);
+        }
+      };
+
+      gridEl.appendChild(card);
+    });
+  }
+
+  function resetPar() { first = null; lock = false; }
+
+  // ✅ NUEVO: reiniciar memorama desde el modal
+  function reiniciarMemorама() {
+    document.getElementById('modal-victoria').classList.remove('visible');
+    crearMemorама();
+  }
+
+  crearMemorама();
+
+  /* ===== CANVAS ===== */
+  const c   = document.getElementById('bg');
+  const ctx = c.getContext('2d');
+
+  function resize() { c.width = innerWidth; c.height = innerHeight; }
+  window.addEventListener('resize', resize);
+  resize();
+
+  const particles = Array.from({ length: 60 }, () => ({
+    x: Math.random() * c.width,
+    y: Math.random() * c.height,
+    r: 2 + Math.random() * 6,
+    v: 0.3 + Math.random()
+  }));
+
+  function animate() {
+    ctx.fillStyle = 'rgba(230,246,255,0.4)';
+    ctx.fillRect(0, 0, c.width, c.height);
+    particles.forEach(p => {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(90,169,230,0.6)';
+      ctx.fill();
+      p.y -= p.v;
+      if (p.y < 0) { p.y = c.height; p.x = Math.random() * c.width; }
+    });
+    requestAnimationFrame(animate);
+  }
+  animate();
+</script>
+</body>
+</html>
