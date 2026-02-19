@@ -5,296 +5,806 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Juego Ngigua</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap');
+
+    :root {
+      --bg:     #0a0a1a;
+      --card:   rgba(255,255,255,0.07);
+      --border: rgba(255,255,255,0.12);
+      --cyan:   #00f5ff;
+      --pink:   #ff4ecd;
+      --yellow: #ffe94e;
+      --green:  #4eff91;
+      --red:    #ff4e6a;
+      --purple: #b44eff;
+      --text:   #ffffff;
+      --muted:  rgba(255,255,255,0.55);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      margin: 0;
-      font-family: Poppins, sans-serif;
-      background: linear-gradient(180deg, #eaf6ff, #d7eefc);
+      font-family: 'Nunito', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
-      height: 100vh;
       overflow: hidden;
     }
 
-    #fondoCanvas {
+    #bgCanvas {
       position: fixed;
-      top: 0;
-      left: 0;
+      inset: 0;
       z-index: 0;
+      pointer-events: none;
     }
 
-    .game-container {
-      width: 400px;
-      background: white;
-      border-radius: 18px;
-      padding: 20px;
-      box-shadow: 0 10px 30px rgba(0,0,0,.15);
-      text-align: center;
+    .game-wrap {
       position: relative;
       z-index: 2;
+      width: min(460px, 95vw);
     }
 
-    h2 { color: #1976d2; margin-bottom: 10px; }
+    .game-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      padding: 28px 24px 24px;
+      backdrop-filter: blur(18px);
+      box-shadow:
+        0 0 0 1px rgba(0,245,255,0.08),
+        0 30px 80px rgba(0,0,0,0.5),
+        inset 0 1px 0 rgba(255,255,255,0.1);
+    }
+
+    .titulo {
+      font-family: 'Fredoka One', cursive;
+      text-align: center;
+      font-size: 2rem;
+      letter-spacing: 1px;
+      background: linear-gradient(90deg, var(--cyan), var(--pink), var(--yellow));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 20px;
+      filter: drop-shadow(0 0 12px rgba(0,245,255,0.4));
+    }
 
     .hud {
       display: flex;
       justify-content: space-between;
-      margin-bottom: 15px;
+      gap: 10px;
+      margin-bottom: 20px;
     }
 
     .chip {
-      background: #e3f2fd;
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-weight: 600;
+      flex: 1;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 10px 14px;
+      text-align: center;
+      font-weight: 800;
     }
 
-    #palabraJuego {
+    .chip .chip-label {
+      font-size: 0.65rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--muted);
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    .chip.vidas  .chip-val { color: var(--red); font-size: 1rem; }
+    .chip.puntos .chip-val { color: var(--yellow); font-size: 1.2rem; }
+    .chip.racha  .chip-val { color: var(--green); font-size: 1.1rem; }
+
+    .word-box {
+      background: rgba(0,245,255,0.05);
+      border: 1px solid rgba(0,245,255,0.18);
+      border-radius: 18px;
+      padding: 20px;
+      text-align: center;
+      margin-bottom: 18px;
+    }
+
+    .word-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--cyan);
+      margin-bottom: 6px;
       font-weight: 700;
-      margin: 15px 0;
-      font-size: 18px;
     }
 
-    button {
-      padding: 8px 12px;
-      border: none;
+    .word-es {
+      font-family: 'Fredoka One', cursive;
+      font-size: 2.3rem;
+      color: var(--text);
+      line-height: 1.1;
+    }
+
+    .word-hint {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    #waveCanvas {
+      display: block;
+      width: 100%;
+      height: 48px;
       border-radius: 10px;
-      background: #1976d2;
-      color: white;
-      font-weight: 600;
-      cursor: pointer;
-      margin: 4px;
-      transition: 0.3s;
+      margin-top: 10px;
+      background: rgba(0,0,0,0.2);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    #waveCanvas.active { opacity: 1; }
+
+    .btns-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 12px;
     }
 
-    button:hover   { background: #0d47a1; }
-    button:disabled { opacity: 0.5; cursor: default; }
+    .btn {
+      border: none;
+      border-radius: 14px;
+      padding: 14px 10px;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 800;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s, opacity 0.2s;
+    }
+
+    .btn:active:not(:disabled) { transform: scale(0.95); }
+
+    .btn:disabled {
+      opacity: 0.28;
+      cursor: default;
+      pointer-events: none;
+    }
+
+    .btn-start {
+      grid-column: 1 / -1;
+      background: linear-gradient(135deg, var(--cyan), var(--purple));
+      color: #000;
+      font-weight: 900;
+      box-shadow: 0 6px 24px rgba(0,245,255,0.3);
+      font-size: 1.05rem;
+    }
+    .btn-start:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0,245,255,0.5); }
+
+    .btn-escuchar {
+      background: linear-gradient(135deg, #101030, #201040);
+      color: var(--cyan);
+      border: 1px solid rgba(0,245,255,0.25);
+    }
+    .btn-escuchar:hover { transform: translateY(-2px); background: linear-gradient(135deg, #181848, #281858); }
+
+    .btn-hablar {
+      background: linear-gradient(135deg, var(--pink), var(--purple));
+      color: white;
+      box-shadow: 0 4px 16px rgba(255,78,205,0.3);
+    }
+    .btn-hablar:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(255,78,205,0.5); }
+    .btn-hablar.escuchando {
+      animation: pulseBtn 0.8s ease-in-out infinite;
+      background: linear-gradient(135deg, #ff2244, var(--pink));
+    }
+
+    @keyframes pulseBtn {
+      0%,100% { box-shadow: 0 4px 16px rgba(255,34,68,0.4); }
+      50%      { box-shadow: 0 4px 36px rgba(255,34,68,0.85); }
+    }
+
+    .btn-escribir {
+      background: linear-gradient(135deg, #0a2a0a, #0a3a18);
+      color: var(--green);
+      border: 1px solid rgba(78,255,145,0.25);
+    }
+    .btn-escribir:hover { transform: translateY(-2px); }
+
+    .btn-saltar {
+      grid-column: 1 / -1;
+      background: rgba(255,255,255,0.04);
+      color: var(--muted);
+      border: 1px solid var(--border);
+      font-size: 0.78rem;
+    }
+
+    .input-row {
+      display: none;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .input-row.visible { display: flex; }
+
+    .input-row input {
+      flex: 1;
+      padding: 12px 16px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: white;
+      font-family: 'Nunito', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 600;
+      outline: none;
+    }
+    .input-row input:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(0,245,255,0.12); }
+    .input-row input::placeholder { color: var(--muted); }
+
+    .btn-enviar {
+      background: linear-gradient(135deg, var(--cyan), #0099cc);
+      color: #000;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 18px;
+      font-weight: 900;
+      cursor: pointer;
+      font-size: 1.1rem;
+      transition: transform 0.15s;
+    }
+    .btn-enviar:hover { transform: scale(1.06); }
 
     #feedback {
-      margin-top: 10px;
-      font-weight: 600;
-      min-height: 40px;
+      min-height: 56px;
+      border-radius: 14px;
+      padding: 12px 16px;
+      text-align: center;
+      font-weight: 700;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1.4;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid transparent;
+      transition: all 0.3s;
+    }
+    #feedback.correcto  { background: rgba(78,255,145,0.1);  border-color: rgba(78,255,145,0.35);  color: var(--green); }
+    #feedback.incorrecto{ background: rgba(255,78,106,0.1);  border-color: rgba(255,78,106,0.35);  color: var(--red); }
+    #feedback.info      { background: rgba(0,245,255,0.07);  border-color: rgba(0,245,255,0.25);   color: var(--cyan); }
+
+    /* Barra de similitud fonética */
+    .sim-wrap { display: none; margin-top: 12px; }
+    .sim-wrap.visible { display: block; }
+    .sim-label { font-size: 0.68rem; color: var(--muted); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
+    .sim-bg { background: rgba(255,255,255,0.08); border-radius: 20px; height: 10px; overflow: hidden; }
+    .sim-fill {
+      height: 100%;
+      border-radius: 20px;
+      width: 0%;
+      transition: width 0.7s cubic-bezier(0.34,1.56,0.64,1);
+      background: linear-gradient(90deg, var(--pink), var(--cyan));
     }
 
-    #inputContainer {
-      margin-top: 10px;
-      display: none;
-    }
+    /* Confetti */
+    .confetti-wrap { position: fixed; inset: 0; pointer-events: none; z-index: 100; overflow: hidden; }
+    .cp { position: absolute; top: -20px; animation: fall linear forwards; border-radius: 2px; }
+    @keyframes fall { to { transform: translateY(110vh) rotate(720deg); opacity: 0; } }
 
-    input {
-      padding: 8px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      width: 65%;
+    /* Badge racha */
+    #rachaBadge {
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%,-50%) scale(0);
+      z-index: 200;
+      font-family: 'Fredoka One', cursive;
+      font-size: 3.5rem;
+      color: var(--yellow);
+      text-shadow: 0 0 30px rgba(255,233,78,0.8), 0 4px 0 rgba(0,0,0,0.6);
+      pointer-events: none;
+      opacity: 0;
+      transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s;
     }
+    #rachaBadge.show { transform: translate(-50%,-50%) scale(1); opacity: 1; }
 
-    /* Mensaje de fin de juego más visual */
-    .game-over {
-      color: #e53935;
+    .back-btn {
+      display: block;
+      text-align: center;
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      text-decoration: none;
+      font-weight: 700;
+      transition: color 0.2s;
     }
-
-    .winner {
-      color: #43a047;
-    }
+    .back-btn:hover { color: var(--cyan); }
   </style>
 </head>
 <body>
 
-<canvas id="fondoCanvas"></canvas>
+<canvas id="bgCanvas"></canvas>
+<div id="rachaBadge">🔥 ¡RACHA!</div>
+<div class="confetti-wrap" id="confettiWrap"></div>
 
-<div class="game-container">
-  <h2>🎮 Juego Ngigua</h2>
+<div class="game-wrap">
+  <div class="game-card">
 
-  <div class="hud">
-    <div class="chip">❤ <span id="vidas">3</span></div>
-    <div class="chip">⭐ <span id="puntos">0</span></div>
+    <div class="titulo">🎮 Juego Ngigua</div>
+
+    <div class="hud">
+      <div class="chip vidas">
+        <span class="chip-label">Vidas</span>
+        <span class="chip-val" id="vidas">❤️❤️❤️</span>
+      </div>
+      <div class="chip puntos">
+        <span class="chip-label">Puntos</span>
+        <span class="chip-val" id="puntos">0</span>
+      </div>
+      <div class="chip racha">
+        <span class="chip-label">Racha</span>
+        <span class="chip-val" id="racha">🔥 0</span>
+      </div>
+    </div>
+
+    <div class="word-box">
+      <div class="word-label">¿Cómo se dice en Ngigua?</div>
+      <div class="word-es" id="palabraES">— — —</div>
+      <div class="word-hint" id="wordHint">Presiona Comenzar para jugar</div>
+      <canvas id="waveCanvas" width="400" height="48"></canvas>
+    </div>
+
+    <div class="btns-row">
+      <button class="btn btn-start" id="btnComenzar">▶ Comenzar</button>
+      <button class="btn btn-escuchar"  id="btnPronunciar" disabled>🔊 Escuchar</button>
+      <button class="btn btn-hablar"    id="btnHablar"     disabled>🎤 Pronunciar</button>
+      <button class="btn btn-escribir"  id="btnEscribir"   disabled>✎ Escribir</button>
+      <button class="btn btn-saltar"    id="btnSaltar"     disabled>⏭ Saltar (−2 pts)</button>
+    </div>
+
+    <div class="input-row" id="inputRow">
+      <input type="text" id="textoInput" placeholder="Escribe en Ngigua…">
+      <button class="btn-enviar" id="btnEnviar">✔</button>
+    </div>
+
+    <div id="feedback">Pulsa <strong>Comenzar</strong> para empezar 🌿</div>
+
+    <div class="sim-wrap" id="simWrap">
+      <div class="sim-label">Similitud fonética</div>
+      <div class="sim-bg"><div class="sim-fill" id="simFill"></div></div>
+    </div>
+
   </div>
-
-  <div id="palabraJuego">Pulsa Comenzar</div>
-
-  <div>
-    <button id="btnComenzar">▶ Comenzar</button>
-    <button id="btnEscribir"   disabled>✎ Escribir</button>
-    <button id="btnPronunciar" disabled>🔊 Escuchar</button>
-    <button id="btnHablar"     disabled>🎤 Pronunciar</button>
-  </div>
-
-  <div id="inputContainer">
-    <input type="text" id="textoInput" placeholder="Escribe en Ngigua">
-    <button id="btnEnviar">✔</button>
-  </div>
-
-  <div id="feedback"></div>
+  <a href="index.html" class="back-btn">← Volver al menú</a>
 </div>
 
-<!-- ✅ CORREGIDO: diccionario compartido en un solo archivo -->
 <script src="diccionario.js"></script>
-
 <script>
-  /* ===== CANVAS — ✅ CORREGIDO: requestAnimationFrame en lugar de setInterval ===== */
-  const canvas = document.getElementById('fondoCanvas');
-  const ctx    = canvas.getContext('2d');
+/* ══════════════════════
+   CANVAS FONDO ANIMADO
+══════════════════════ */
+const bgC = document.getElementById('bgCanvas');
+const bgX = bgC.getContext('2d');
 
-  function resize() {
-    canvas.width  = window.innerWidth;
-    canvas.height = window.innerHeight;
+function resizeBg() { bgC.width = innerWidth; bgC.height = innerHeight; }
+resizeBg();
+window.addEventListener('resize', resizeBg);
+
+// Partículas de colores
+const stars = Array.from({ length: 130 }, () => ({
+  x: Math.random() * innerWidth,
+  y: Math.random() * innerHeight,
+  r: Math.random() * 2.5 + 0.4,
+  vx: (Math.random() - 0.5) * 0.35,
+  vy: (Math.random() - 0.5) * 0.35,
+  hue: Math.random() * 360,
+  alpha: Math.random() * 0.6 + 0.15
+}));
+
+// Orbes de fondo con movimiento lento
+const orbs = [
+  { px: 0.12, py: 0.18, r: 260, c: 'rgba(0,245,255,0.07)' },
+  { px: 0.88, py: 0.72, r: 310, c: 'rgba(255,78,205,0.07)' },
+  { px: 0.50, py: 0.92, r: 210, c: 'rgba(180,78,255,0.06)' },
+  { px: 0.75, py: 0.08, r: 180, c: 'rgba(255,233,78,0.05)' },
+];
+
+// Líneas de conexión entre partículas cercanas
+const MAX_DIST = 90;
+let tick = 0;
+
+function drawBg() {
+  bgX.fillStyle = '#0a0a1a';
+  bgX.fillRect(0, 0, bgC.width, bgC.height);
+
+  // Grid tenue estilo cyber
+  bgX.strokeStyle = 'rgba(0,245,255,0.025)';
+  bgX.lineWidth = 1;
+  for (let x = 0; x < bgC.width; x += 60) {
+    bgX.beginPath(); bgX.moveTo(x,0); bgX.lineTo(x, bgC.height); bgX.stroke();
   }
-  resize();
-  // ✅ CORREGIDO: resize reactivo (faltaba en el original)
-  window.addEventListener('resize', resize);
-
-  const bubbles = Array.from({ length: 40 }, () => ({
-    x: Math.random() * canvas.width,
-    y: Math.random() * canvas.height,
-    r: Math.random() * 6 + 2,
-    d: Math.random() * 1 + 0.5
-  }));
-
-  function animarFondo() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = 'rgba(25,118,210,0.2)';
-    bubbles.forEach(b => {
-      ctx.beginPath();
-      ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-      ctx.fill();
-      b.y -= b.d;
-      if (b.y < 0) { b.y = canvas.height; b.x = Math.random() * canvas.width; }
-    });
-    requestAnimationFrame(animarFondo);
-  }
-  animarFondo();
-
-  /* ===== ESTADO ===== */
-  let vidas        = 3;
-  let puntos       = 0;
-  let palabraActual = '';
-
-  /* ✅ CORREGIDO: bandera global para speech, evita estado inconsistente al reiniciar */
-  const haySpeech = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
-
-  /* ===== REFERENCIAS DOM ===== */
-  const vidasNode      = document.getElementById('vidas');
-  const puntosNode     = document.getElementById('puntos');
-  const palabraNode    = document.getElementById('palabraJuego');
-  const feedback       = document.getElementById('feedback');
-  const btnComenzar    = document.getElementById('btnComenzar');
-  const btnEscribir    = document.getElementById('btnEscribir');
-  const btnPronunciar  = document.getElementById('btnPronunciar');
-  const btnHablar      = document.getElementById('btnHablar');
-  const inputContainer = document.getElementById('inputContainer');
-  const textoInput     = document.getElementById('textoInput');
-  const btnEnviar      = document.getElementById('btnEnviar');
-
-  /* ✅ MEJORADO: una sola instancia de Audio reutilizable */
-  const audioPlayer = new Audio();
-
-  function reproducirAudio(ruta) {
-    audioPlayer.src = ruta;
-    audioPlayer.play();
+  for (let y = 0; y < bgC.height; y += 60) {
+    bgX.beginPath(); bgX.moveTo(0,y); bgX.lineTo(bgC.width,y); bgX.stroke();
   }
 
-  /* ===== FUNCIONES ===== */
-  function actualizarHUD() {
-    vidasNode.textContent  = vidas;
-    puntosNode.textContent = puntos;
-  }
+  // Orbes flotantes
+  orbs.forEach((o, i) => {
+    const ox = o.px * bgC.width  + Math.sin(tick * 0.004 + i * 1.3) * 35;
+    const oy = o.py * bgC.height + Math.cos(tick * 0.003 + i * 1.1) * 25;
+    const g  = bgX.createRadialGradient(ox, oy, 0, ox, oy, o.r);
+    g.addColorStop(0, o.c); g.addColorStop(1, 'transparent');
+    bgX.fillStyle = g;
+    bgX.beginPath(); bgX.arc(ox, oy, o.r, 0, Math.PI*2); bgX.fill();
+  });
 
-  function nuevaRonda() {
-    const palabras = Object.keys(diccionario);
-    palabraActual  = palabras[Math.floor(Math.random() * palabras.length)];
-    palabraNode.textContent      = `Palabra: ${palabraActual}`;
-    palabraNode.className        = '';
-    feedback.textContent         = '';
-    inputContainer.style.display = 'none';
-    textoInput.value             = '';
-  }
+  // Actualizar y dibujar partículas
+  stars.forEach(s => {
+    s.x += s.vx; s.y += s.vy;
+    if (s.x < 0) s.x = bgC.width;
+    if (s.x > bgC.width) s.x = 0;
+    if (s.y < 0) s.y = bgC.height;
+    if (s.y > bgC.height) s.y = 0;
 
-  function finJuego() {
-    feedback.textContent    = '💀 Juego terminado — ¡inténtalo de nuevo!';
-    palabraNode.textContent = 'Fin del juego';
-    palabraNode.className   = 'game-over';
-    btnEscribir.disabled    = true;
-    btnPronunciar.disabled  = true;
-    btnHablar.disabled      = true;
-    inputContainer.style.display = 'none';
-  }
+    const pulse = 0.5 + 0.5 * Math.sin(tick * 0.025 + s.hue * 0.05);
+    bgX.beginPath();
+    bgX.arc(s.x, s.y, s.r, 0, Math.PI*2);
+    bgX.fillStyle = `hsla(${s.hue},100%,80%,${s.alpha * pulse})`;
+    bgX.fill();
+  });
 
-  function evaluar(texto) {
-    const esperado = diccionario[palabraActual].ngigua.toLowerCase();
-
-    if (texto.toLowerCase() === esperado) {
-      puntos += 10;
-      feedback.textContent = '✅ ¡Correcto! +10 puntos';
-      setTimeout(nuevaRonda, 1000);
-    } else {
-      vidas--;
-      feedback.textContent = `❌ Incorrecto — la respuesta era: ${diccionario[palabraActual].ngigua}`;
-      if (vidas <= 0) {
-        finJuego();
-      } else {
-        setTimeout(nuevaRonda, 1500);
+  // Líneas entre partículas cercanas
+  for (let i = 0; i < stars.length; i++) {
+    for (let j = i + 1; j < stars.length; j++) {
+      const dx = stars[i].x - stars[j].x;
+      const dy = stars[i].y - stars[j].y;
+      const d  = Math.sqrt(dx*dx + dy*dy);
+      if (d < MAX_DIST) {
+        bgX.strokeStyle = `rgba(0,245,255,${(1 - d/MAX_DIST) * 0.12})`;
+        bgX.lineWidth   = 0.8;
+        bgX.beginPath();
+        bgX.moveTo(stars[i].x, stars[i].y);
+        bgX.lineTo(stars[j].x, stars[j].y);
+        bgX.stroke();
       }
     }
-    actualizarHUD();
   }
 
-  /* ===== RECONOCIMIENTO DE VOZ ===== */
-  if (haySpeech) {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'es-ES';
+  tick++;
+  requestAnimationFrame(drawBg);
+}
+drawBg();
 
-    btnHablar.addEventListener('click', () => {
-      recognition.start();
-      feedback.textContent = '🎤 Escuchando...';
-    });
+/* ════════════════════
+   ONDA DE VOZ EN VIVO
+════════════════════ */
+const waveC = document.getElementById('waveCanvas');
+const waveX = waveC.getContext('2d');
+let analyser = null, waveData = null, waveRaf = null, waveActive = false;
 
-    recognition.onresult = (event) => {
-      const texto = event.results[0][0].transcript;
-      feedback.textContent = 'Escuchado: ' + texto;
-      evaluar(texto);
-    };
+function startWave(stream) {
+  try {
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const src = audioCtx.createMediaStreamSource(stream);
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 256;
+    waveData = new Uint8Array(analyser.frequencyBinCount);
+    src.connect(analyser);
+    waveActive = true;
+    waveC.classList.add('active');
+    renderWave();
+  } catch(_) {}
+}
 
-    recognition.onerror = () => {
-      feedback.textContent = '⚠️ Error al usar el micrófono';
-    };
+function stopWave() {
+  waveActive = false;
+  waveC.classList.remove('active');
+  if (waveRaf) cancelAnimationFrame(waveRaf);
+  waveX.clearRect(0, 0, waveC.width, waveC.height);
+}
+
+function renderWave() {
+  if (!waveActive) return;
+  waveRaf = requestAnimationFrame(renderWave);
+  analyser.getByteTimeDomainData(waveData);
+
+  waveX.clearRect(0, 0, waveC.width, waveC.height);
+  waveX.lineWidth = 2.5;
+  waveX.strokeStyle = '#00f5ff';
+  waveX.shadowColor = '#00f5ff';
+  waveX.shadowBlur  = 10;
+  waveX.beginPath();
+  const sw = waveC.width / waveData.length;
+  waveData.forEach((v, i) => {
+    const y = (v / 128) * (waveC.height / 2);
+    i === 0 ? waveX.moveTo(0, y) : waveX.lineTo(i * sw, y);
+  });
+  waveX.stroke();
+}
+
+/* ════════════════════════════════════════════════
+   COMPARACIÓN FONÉTICA — algoritmo de similitud
+
+   En vez de comparar texto contra texto exacto,
+   calculamos qué tan parecido fonéticamente es
+   lo que dijo el usuario con la palabra Ngigua.
+
+   Pasos:
+   1. Normalizar (quitar acentos, minúsculas)
+   2. Aplicar sustituciones fonéticas comunes
+      (qu→k, c→k, ll→y, etc.) para que variantes
+      de pronunciación pasen igual
+   3. Calcular distancia Levenshtein
+   4. Convertir a porcentaje
+   5. Umbral ≥65% = correcto, ≥40% = cerca
+════════════════════════════════════════════════ */
+function normalizar(s) {
+  return s
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // sin acentos
+    .replace(/[^a-z0-9 ]/g, '')
+    .trim();
+}
+
+// Sustituciones fonéticas para tolerancia extra
+function fonetico(s) {
+  return normalizar(s)
+    .replace(/qu/g, 'k')
+    .replace(/c([eo])/g, 's$1')
+    .replace(/c([aou])/g, 'k$1')
+    .replace(/ll/g, 'y')
+    .replace(/v/g, 'b')
+    .replace(/ph/g, 'f')
+    .replace(/x/g, 'ks')
+    .replace(/z/g, 's')
+    .replace(/h/g, '')       // la h es muda en español
+    .replace(/gu([ei])/g, 'g$1')
+    .replace(/\s+/g, '');    // sin espacios para comparar sílabas juntas
+}
+
+function levenshtein(a, b) {
+  const m = a.length, n = b.length;
+  const dp = Array.from({length: m+1}, (_,i) =>
+    Array.from({length: n+1}, (_,j) => i===0 ? j : j===0 ? i : 0)
+  );
+  for (let i=1; i<=m; i++)
+    for (let j=1; j<=n; j++)
+      dp[i][j] = a[i-1]===b[j-1]
+        ? dp[i-1][j-1]
+        : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+  return dp[m][n];
+}
+
+function similitudPct(usuario, esperado) {
+  const a = fonetico(usuario);
+  const b = fonetico(esperado);
+  if (!a && !b) return 100;
+  const maxLen = Math.max(a.length, b.length);
+  if (maxLen === 0) return 100;
+  return Math.round((1 - levenshtein(a, b) / maxLen) * 100);
+}
+
+/* ═══════════════
+   ESTADO DEL JUEGO
+═══════════════ */
+let vidas = 3, puntos = 0, racha = 0, palabraActual = '', juegoActivo = false;
+const haySpeech = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+const audioPlayer = new Audio();
+
+const vidasEl   = document.getElementById('vidas');
+const puntosEl  = document.getElementById('puntos');
+const rachaEl   = document.getElementById('racha');
+const palabraEl = document.getElementById('palabraES');
+const hintEl    = document.getElementById('wordHint');
+const feedEl    = document.getElementById('feedback');
+const inputRow  = document.getElementById('inputRow');
+const textoInput= document.getElementById('textoInput');
+const simWrap   = document.getElementById('simWrap');
+const simFill   = document.getElementById('simFill');
+const rachaBadge= document.getElementById('rachaBadge');
+
+const btnComenzar  = document.getElementById('btnComenzar');
+const btnPronunciar= document.getElementById('btnPronunciar');
+const btnHablar    = document.getElementById('btnHablar');
+const btnEscribir  = document.getElementById('btnEscribir');
+const btnSaltar    = document.getElementById('btnSaltar');
+const btnEnviar    = document.getElementById('btnEnviar');
+
+function actualizarHUD() {
+  vidasEl.textContent  = '❤️'.repeat(Math.max(0, vidas));
+  puntosEl.textContent = puntos;
+  rachaEl.textContent  = '🔥 ' + racha;
+}
+
+function setFeedback(txt, tipo) {
+  feedEl.textContent = txt;
+  feedEl.className   = tipo || '';
+}
+
+function nuevaRonda() {
+  const palabras = Object.keys(diccionario);
+  palabraActual  = palabras[Math.floor(Math.random() * palabras.length)];
+  palabraEl.textContent = palabraActual;
+  hintEl.textContent    = `Pronuncia en Ngigua: "${diccionario[palabraActual].ngigua}"`;
+  setFeedback('', '');
+  inputRow.classList.remove('visible');
+  simWrap.classList.remove('visible');
+  textoInput.value = '';
+  stopWave();
+}
+
+/* ═══════════════════════════
+   EVALUAR (texto o voz)
+═══════════════════════════ */
+function evaluar(textoUsuario) {
+  if (!juegoActivo) return;
+  const ngiguaEsperada = diccionario[palabraActual].ngigua;
+  const pct = similitudPct(textoUsuario, ngiguaEsperada);
+
+  // Mostrar barra
+  simWrap.classList.add('visible');
+  setTimeout(() => { simFill.style.width = pct + '%'; }, 50);
+
+  if (pct >= 65) {
+    const bonus = racha >= 3 ? 20 : 10;
+    puntos += bonus;
+    racha++;
+    actualizarHUD();
+    setFeedback(`✅ ¡Correcto! +${bonus} pts  (similitud: ${pct}%)`, 'correcto');
+    lanzarConfetti();
+    if (racha > 0 && racha % 3 === 0) mostrarRacha();
+    setTimeout(nuevaRonda, 1700);
+
+  } else if (pct >= 40) {
+    setFeedback(`⚡ ¡Casi! Escuchado: "${textoUsuario}" — intenta de nuevo (${pct}%)`, 'info');
+    // no penaliza vida — da otra oportunidad
+    racha = 0;
+    actualizarHUD();
+
   } else {
-    btnHablar.disabled = true;
-  }
-
-  /* ===== EVENTOS ===== */
-  btnComenzar.addEventListener('click', () => {
-    vidas  = 3;
-    puntos = 0;
+    vidas--;
+    racha = 0;
     actualizarHUD();
-    btnEscribir.disabled   = false;
-    btnPronunciar.disabled = false;
-    // ✅ CORREGIDO: usa la bandera global, no asume que siempre hay speech
-    btnHablar.disabled     = !haySpeech;
-    nuevaRonda();
+    setFeedback(`❌ Era: "${ngiguaEsperada}" — escuché: "${textoUsuario}" (${pct}%)`, 'incorrecto');
+    if (vidas <= 0) finJuego();
+    else setTimeout(nuevaRonda, 2200);
+  }
+}
+
+function finJuego() {
+  juegoActivo = false;
+  setFeedback(`💀 ¡Fin del juego! Obtuviste ${puntos} puntos. ¡Inténtalo de nuevo!`, 'incorrecto');
+  palabraEl.textContent   = '— FIN —';
+  hintEl.textContent      = '';
+  btnHablar.disabled      = true;
+  btnEscribir.disabled    = true;
+  btnPronunciar.disabled  = true;
+  btnSaltar.disabled      = true;
+  btnComenzar.textContent = '🔄 Jugar de nuevo';
+  stopWave();
+}
+
+/* ═══════════════════
+   RECONOCIMIENTO VOZ
+═══════════════════ */
+let micStream = null;
+
+if (haySpeech) {
+  const SR  = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const rec = new SR();
+  rec.lang           = 'es-MX';
+  rec.interimResults = false;
+
+  btnHablar.addEventListener('click', async () => {
+    if (!juegoActivo) return;
+    try {
+      micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      startWave(micStream);
+    } catch(_) {}
+    rec.start();
+    btnHablar.classList.add('escuchando');
+    btnHablar.textContent = '🔴 Escuchando…';
+    setFeedback('🎤 Habla ahora en Ngigua…', 'info');
   });
 
-  btnEscribir.addEventListener('click', () => {
-    inputContainer.style.display = 'block';
-    textoInput.focus();
-  });
-
-  btnEnviar.addEventListener('click', () => {
-    const texto = textoInput.value.trim();
-    if (!texto) return;
+  rec.onresult = e => {
+    const texto = e.results[0][0].transcript;
+    stopWave();
+    if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+    btnHablar.classList.remove('escuchando');
+    btnHablar.textContent = '🎤 Pronunciar';
     evaluar(texto);
-    textoInput.value = '';
-  });
+  };
 
-  textoInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') btnEnviar.click();
-  });
+  rec.onerror = () => {
+    stopWave();
+    btnHablar.classList.remove('escuchando');
+    btnHablar.textContent = '🎤 Pronunciar';
+    setFeedback('⚠️ No se pudo usar el micrófono. Intenta de nuevo.', 'incorrecto');
+  };
 
-  btnPronunciar.addEventListener('click', () => {
-    reproducirAudio(diccionario[palabraActual].audio);
-  });
+  rec.onend = () => {
+    stopWave();
+    btnHablar.classList.remove('escuchando');
+    btnHablar.textContent = '🎤 Pronunciar';
+  };
+} else {
+  btnHablar.disabled = true;
+}
+
+/* ═══════════════
+   EFECTOS VISUAL
+═══════════════ */
+const COLORS = ['#00f5ff','#ff4ecd','#ffe94e','#4eff91','#ff4e6a','#b44eff','#fff'];
+
+function lanzarConfetti() {
+  const wrap = document.getElementById('confettiWrap');
+  for (let i = 0; i < 45; i++) {
+    const p = document.createElement('div');
+    p.className = 'cp';
+    p.style.cssText = `
+      left:${Math.random()*100}%;
+      width:${6+Math.random()*10}px;
+      height:${6+Math.random()*10}px;
+      background:${COLORS[Math.floor(Math.random()*COLORS.length)]};
+      border-radius:${Math.random()>.5?'50%':'2px'};
+      animation-duration:${0.8+Math.random()*1.4}s;
+      animation-delay:${Math.random()*0.3}s;
+    `;
+    wrap.appendChild(p);
+    p.addEventListener('animationend', () => p.remove());
+  }
+}
+
+function mostrarRacha() {
+  rachaBadge.textContent = `🔥 ¡RACHA x${racha}!`;
+  rachaBadge.classList.add('show');
+  setTimeout(() => rachaBadge.classList.remove('show'), 1500);
+}
+
+/* ═══════════
+   BOTONES
+═══════════ */
+btnComenzar.addEventListener('click', () => {
+  vidas = 3; puntos = 0; racha = 0;
+  juegoActivo = true;
+  actualizarHUD();
+  btnPronunciar.disabled = false;
+  btnEscribir.disabled   = false;
+  btnSaltar.disabled     = false;
+  btnHablar.disabled     = !haySpeech;
+  btnComenzar.textContent = '🔄 Reiniciar';
+  nuevaRonda();
+});
+
+btnPronunciar.addEventListener('click', () => {
+  if (!juegoActivo || !palabraActual) return;
+  audioPlayer.src = diccionario[palabraActual].audio;
+  audioPlayer.play().catch(()=>{});
+  setFeedback(`🔊 Escucha cómo se dice: "${diccionario[palabraActual].ngigua}"`, 'info');
+});
+
+btnEscribir.addEventListener('click', () => {
+  if (!juegoActivo) return;
+  inputRow.classList.toggle('visible');
+  if (inputRow.classList.contains('visible')) textoInput.focus();
+});
+
+btnEnviar.addEventListener('click', () => {
+  const t = textoInput.value.trim();
+  if (!t) return;
+  evaluar(t);
+  textoInput.value = '';
+});
+
+textoInput.addEventListener('keydown', e => { if (e.key === 'Enter') btnEnviar.click(); });
+
+btnSaltar.addEventListener('click', () => {
+  if (!juegoActivo) return;
+  puntos = Math.max(0, puntos - 2);
+  racha  = 0;
+  actualizarHUD();
+  setFeedback(`⏭ Saltado — era: "${diccionario[palabraActual].ngigua}"`, 'info');
+  setTimeout(nuevaRonda, 1200);
+});
 </script>
 </body>
 </html>
