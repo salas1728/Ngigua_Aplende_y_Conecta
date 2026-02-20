@@ -145,6 +145,7 @@ canvas{
   <strong>Selecciona una palabra</strong>
 </div>
 
+
 <h3>🔧 Herramientas</h3>
 <div class="grid" id="grid-nature"></div>
 
@@ -156,11 +157,18 @@ canvas{
 
 <h3>🌤 Cielo</h3>
 <div class="grid" id="grid-weather"></div>
+ 
+<h2>➗  Numeros en Nguigua</h2>
+<div class="grid" id="grid-nums"></div>
+<h3> 🔡  Alfabeto</h3>
+<div class="grid" id="grid-alfabeto"></div>
 
 <h2>🧠 Memorama Ngigua</h2>
 <div id="memory">
   <div class="memory-grid" id="memory-grid"></div>
-</div>
+
+
+
 
 <script>
 /* ===== DATOS ===== */
@@ -188,7 +196,23 @@ const themes={
     {name:'Luna',img:'Captura de pantalla 2025-10-24 092830.png'},
     {name:'Estrellas',img:'Captura de pantalla 2025-10-24 092851.png'},
     {name:'Nube',img:'Captura de pantalla 2025-10-24 092858.png'}
-  ]
+  ],
+  nums:[
+    {name:'Uno',img:'WhatsApp Image 2026-02-20 at 12.40.19 AM.jpeg'},
+    {name:'Dos',img:'imagenes2/Captura de pantalla 2026-02-20 005748.png'},
+    {name:'Tres',img:'imagenes2/Captura de pantalla 2026-02-20 005955.png'},
+    {name:'Cuatro',img:'imagenes2/Captura de pantalla 2026-02-20 010046.png'},
+    {name:'Cinco',img:'imagenes2/Captura de pantalla 2026-02-20 010302.png'},
+    {name:'Seis',img:'imagenes2/Captura de pantalla 2026-02-20 010344.png'},
+    {name:'Ciete',img:'imagenes2/Captura de pantalla 2026-02-20 010451.png'},
+    {name:'Ocho',img:'imagenes2/WhatsApp Image 2026-02-20 at 12.40.19 AM.jpeg'},
+    {name:'Nueve',img:'imagenes2/Captura de pantalla 2026-02-20 010551.png'},
+    {name:'Diez',img:'imagenes2/Captura de pantalla 2026-02-20 010633.png'},
+],
+alfabeto:[
+  {name:"Alfabeto",img:"imagenes2/Captura de pantalla 2026-02-20 011250.png"}
+]
+  
 };
 
 /* ===== GRID IMÁGENES ===== */
@@ -210,6 +234,8 @@ buildGrid('grid-nature',themes.nature);
 buildGrid('grid-person',themes.person);
 buildGrid('grid-animals',themes.animals);
 buildGrid('grid-weather',themes.weather);
+buildGrid("grid-nums",themes.nums);
+buildGrid("grid-alfabeto",themes.alfabeto);
 
 /* ===== MEMORAMA ===== */
 const allImages=[
